@@ -2,6 +2,7 @@
 This is a Udacity Self-Driving Car NanoDegree project submission that uses a particle filter to estimate the position and heading of a simulated moving vehicle with noisy sensor measurements of simulated landmarks. 
 
 ![](./Screenshot.png)
+> *Particle filter error at the last time step was 0.107 and 0.098 meters along the x and y axis respectively, and the heading error was 0.004 radians. The particle filter was able to complete the simulation in 49 seconds.*
 
 ## Installation
 * Clone or fork this repository. 
@@ -25,7 +26,7 @@ Intended user is the Udacity evaluator for this project.
      * The blue circle with arrow indicates the particle filter's estimated position and heading of the kidnapped vehicle.
      * Green lines extending from vehicle are ground truth measurements to landmarks around vehicle.
      * Blue lines extending from vehicle are estimated measurements to landmarks around vehicle.
-     * Error values for vehicle's position and heading components are also displayed.
+     * Error values for vehicle's position (meters) and heading (radians) components are also displayed.
      
 ## Main Project Files
 The C++ code and headers can be found in the `src` folder.
@@ -38,7 +39,7 @@ To compile the source code, run the following from the main project directory:
 
 ### The Particle Filter
 
-The screenshot above indicates the particle filter error at the last time step was 0.107 and 0.098 meters along the x and y axis respectively, and the heading error was 0.004 radians. The particle filter was able to complete the simulation in 49 seconds.
+The screenshot above indicates the 
 
 The following sections describe the behavior of the particle filter.
 
@@ -50,13 +51,13 @@ Inputs to the particle filter include a map of landmarks:
 1. x position
 2. y position
 3. landmark id
-> * Map data provided by 3D Mapping Solutions GmbH.
+> Map data provided by 3D Mapping Solutions GmbH.
 
 Sensor observations of landmarks (from vehicle's frame), velocity, and yaw are provided by the simulator.
 
 #### Initialization
 
-The particle filter initializes 1000 particles with a Gaussian distribution around first position and all the weights to 1.
+The particle filter initializes 1000 particles with a Gaussian distribution around the first position and sets all the weights to 1.
 
 ```python
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
@@ -337,4 +338,15 @@ void ParticleFilter::resample() {
 }
 ```
 
+#### Selecting the "Best Particle" to Estimate Position of Kidnapped Vehicle
+
+With the lower weight paricles filtered out of the sample set, the particle with the highest weight (best particle) from this sample represents the best estimate of the vehicle's position.
+
+The simulator uses the the best particle to plot the estimated position and heading of the vehicle designated by a blue circle and arrow. 
+
+The accuracy of the particle filter can be observed with how close blue circle overlaps is centered about the vehicle symbol. Additionally, the error in meters and radians is also displayed.
+
+The following time steps continue with prediction (given velocity and yaw inputs from the simulator) through resampling. 
+
+Over time, the lower probability particles are filtered out, while the more accurate particles are selected into the sample.
 
