@@ -1,3 +1,137 @@
+# Kidnapped Vehicle
+This is a Udacity Self-Driving Car NanoDegree project submission that uses a particle filter to estimate the position and heading of a simulated moving vehicle with noisy sensor measurements of simulated landmarks. 
+
+![](./screenshot.png)
+
+## Installation
+* Clone or fork this repository. 
+* Install [Udacity's Term 2 Simulator](https://github.com/udacity/self-driving-car-sim/releases) which allows the user to visualize the moving object, lidar and radar sensor data, and the kalman filter estimated positions.
+* Install [uWebSocketIO](https://github.com/uNetworking/uWebSockets) which allows the project to send data to the Term 2 Simulator.
+  * Linux: run the script `install-ubuntu.sh`.
+  * Mac: run the script `install-mac.sh`.
+  * Windows: install Ubuntu Bash enviroment, clone repo in Ubuntu Bash environment, then run the linux install script `install-ubuntu.sh`.
+* Troubleshooting tips can be found on this [Udacity knowledge post](https://knowledge.udacity.com/questions/5184).
+
+## Usage
+Intended user is the Udacity evaluator for this project. 
+
+1. Run the following from the project directory:
+   * `cd build`
+   * `./particle_filter`
+2. Run the Term 2 Simulator.
+   * In the main menu screen select Project 3: Kidnapped Vehicle.
+   * Click the START button to observe the vehicle moving.
+     * The vehicle symbol indicates the ground truth position and heading of the kidnapped vehicle.
+     * The blue circle with arrow indicates the particle filter's estimated position and heading of the kidnapped vehicle.
+     * Green lines extending from vehicle are ground truth measurements to landmarks around vehicle.
+     * Blue lines extending from vehicle are estimated measurements to landmarks around vehicle.
+     * Error values for vehicle's position and heading components are also displayed.
+
+## Main Project Files
+The C++ code and headers can be found in the `src` folder.
+* `particle_filter.cpp`: manages the particle_filter class for calculating the estimated vehicle position and heading.
+
+### The Particle Filter
+
+The screenshot above indicates the particle filter error at the last time step was 0.107 and 0.098 meters along the x and y axis respectively, and the heading error was 0.004 radians. The particle filter was able to complete the simulation in 49 seconds.
+
+#### Initialization
+
+The particle filter initializes 1000 particles with a Gaussian distribution around first position and all the weights to 1.
+
+```python
+void ParticleFilter::init(double x, double y, double theta, double std[]) {
+
+  num_particles = 1000;  // TODO: Set the number of particles
+  particles.resize(num_particles);
+  weights.resize(particles.size());
+  
+  normal_distribution<double> dist_x(x, std[X]);
+  normal_distribution<double> dist_y(y, std[Y]);
+  normal_distribution<double> dist_theta(theta, std[THETA]);
+   
+  for (int i = 0; i < particles.size(); i++) {
+    Particle& p = particles[i];
+    p.id       = i;
+    p.x        = dist_x(Gen);
+    p.y        = dist_y(Gen);
+    p.theta    = dist_theta(Gen);
+    p.weight   = 1.0;
+    weights[i] = p.weight;
+  }
+
+  is_initialized = true;
+}
+```
+
+#### Prediction
+
+The state of each particle is then predicted with the vehicle's (noiseless) velocity and yaw rate using basic geometry.
+
+To predict the particle state with zero yaw, the following was used:
+
+```python
+void predictionYawZero(double delta_t, double std_pos[], double velocity, 
+    std::vector<Particle>& particles) {
+          
+  double dist = velocity * delta_t;
+
+  for (int i = 0; i < particles.size(); i ++) {
+
+    Particle& p = particles[i];
+    
+    double pred_x = p.x + dist * cos(p.theta);
+    double pred_y = p.y + dist * sin(p.theta);
+    
+    setState(pred_x, pred_y, p.theta, std_pos, p);
+  }
+}
+```
+
+To predict the particle state with yaw rate, the following was used:
+
+```python
+void predictionYawNonZero(double delta_t, double std_pos[], double velocity, 
+      double yaw_rate, std::vector<Particle>& particles)  {
+        
+  double v_per_yaw_rate = velocity / yaw_rate;
+  
+  for (int i = 0; i < particles.size(); i ++) {
+
+    Particle& p = particles[i];
+    
+    double pred_theta = p.theta + yaw_rate*delta_t;
+    double pred_x = p.x + v_per_yaw_rate * (sin(pred_theta) - sin(p.theta));
+    double pred_y = p.y + v_per_yaw_rate * (cos(p.theta) - cos(pred_theta));
+    
+    setState(pred_x, pred_y, pred_theta, std_pos, p);
+  }
+```
+
+Once the predicted position and heading of each particle is calculated, noise is applied and the state is set.
+
+```python
+void setState (double pred_x, double pred_y, double pred_theta, 
+    double std_pos[], Particle& p) {
+  
+  normal_distribution<double> dist_x    (pred_x, std_pos[X]);
+  normal_distribution<double> dist_y    (pred_y, std_pos[Y]);
+  normal_distribution<double> dist_theta(pred_theta, std_pos[THETA]);
+  
+  p.x     = dist_x(Gen);
+  p.y     = dist_y(Gen);
+  p.theta = dist_theta(Gen);
+}
+```
+
+
+To compile the source code, run the following from the main project directory:
+* `cd build`
+* `cmake ..`
+* `make`
+
+
+---------------------------------
 # Overview
 This repository contains all the code needed to complete the final project for the Localization course in Udacity's Self-Driving Car Nanodegree.
 
