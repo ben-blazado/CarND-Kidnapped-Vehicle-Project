@@ -15,6 +15,7 @@ This is a Udacity Self-Driving Car NanoDegree project submission that uses a par
   - [Particle Weights](#particle-weights)
   - [Particle Resampling ](#particle-resampling)
   - [Selecting and Plotting the "Best Particle" to Estimate Position of Kidnapped Vehicle](#selecting-and-plotting-the-best-particle-to-estimate-position-of-kidnapped-vehicle)
+- [**Evaluation**](#evaluation)
 
 ## Installation
 * Clone or fork this repository. 
@@ -410,3 +411,7 @@ The accuracy of the particle filter can be observed with how close the blue circ
 The subsequent time steps continue with prediction (given velocity and yaw inputs from the simulator) through resampling. 
 
 Over time, the lower probability particles are filtered out, while the more accurate particles are selected into the sample, thus providing a highly accurate position of the kidnapped vehicle.
+
+## Evaluation
+
+![](./evaluation.png)
