@@ -59,7 +59,7 @@ Sensor observations of landmarks (from vehicle's frame), velocity, and yaw are p
 
 The particle filter initializes 1000 particles with a Gaussian distribution around the first position and sets all the weights to 1.
 
-```python
+```cpp
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
   num_particles = 1000;  // TODO: Set the number of particles
@@ -90,7 +90,7 @@ The state of each particle is then predicted with the vehicle's (noiseless) velo
 
 To predict the particle state with zero yaw, the following was used:
 
-```python
+```cpp
 void predictionYawZero(double delta_t, double std_pos[], double velocity, 
     std::vector<Particle>& particles) {
           
@@ -110,7 +110,7 @@ void predictionYawZero(double delta_t, double std_pos[], double velocity,
 
 To predict the particle state with yaw rate, the following was used:
 
-```python
+```cpp
 void predictionYawNonZero(double delta_t, double std_pos[], double velocity, 
       double yaw_rate, std::vector<Particle>& particles)  {
         
@@ -130,7 +130,7 @@ void predictionYawNonZero(double delta_t, double std_pos[], double velocity,
 
 Once the predicted position and heading of each particle is calculated, noise is applied and the state is set.
 
-```python
+```cpp
 void setState (double pred_x, double pred_y, double pred_theta, 
     double std_pos[], Particle& p) {
   
@@ -150,7 +150,7 @@ The weights of each particle are calculated based on the sensor measurements of 
 
 Landmarks within the sensor range of the particle are selected from the map.
 
-```python
+```cpp
 void selectInRange(const Particle& p, double sensor_range, 
                    const Map &map_landmarks, 
                    vector<LandmarkObs> &predicted_landmarks) {
@@ -175,7 +175,7 @@ void selectInRange(const Particle& p, double sensor_range,
 
 The sensor measurements are in the vehicle's frame of reference (vehicle is origin). To calculate the weights correctly, the sensor measurements must be transformed to the map's frame of reference using translation and rotation about each particle.
 
-```python
+```cpp
 void transformToMap(const Particle &p, 
                     const vector<LandmarkObs> &observations, 
                     vector<LandmarkObs> &map_observations) {
@@ -202,7 +202,7 @@ Landmarks in range are matched to the transformed sensor measurements based on s
 
 This matching will be used to calculate the distance between the position of the landmark and position of the observation.
 
-```python
+```cpp
 void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, 
                                      vector<LandmarkObs>& observations) {
     
@@ -236,7 +236,9 @@ The farther the position of observation is to its matched landmark, the lower th
 
 The weight of the particle is the product of the probabilities of the observations.
 
-```python
+Landmarks are associated with each particle for debugging using `SetAssociations()`.
+
+```cpp
 void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
                                    const vector<LandmarkObs> &observations, 
                                    const Map &map_landmarks) {
@@ -304,9 +306,9 @@ With the weights of each particle calculated, the particle filter selects sample
 
 Selection of each particle uses a `discrete_distribution` initialized by the particle filter's `weights` vector.
 
-The larger the weight of the particle, the more likely it is to be selected by the filter. Lower weight particles are "filtered" out over each time step.
+The larger the weight of the particle, the more likely it is to be selected by the filter. Lower weight particles are eventually "filtered" out over each time step.
 
-```python
+```cpp
 void ParticleFilter::resample() {
   /**
    * TODO: Resample particles with replacement with probability proportional 
@@ -338,11 +340,60 @@ void ParticleFilter::resample() {
 }
 ```
 
-#### Selecting the "Best Particle" to Estimate Position of Kidnapped Vehicle
+#### Selecting and Plotting the "Best Particle" to Estimate Position of Kidnapped Vehicle
 
 With the lower weight particles filtered out of the sample set, the particle with the highest weight (best particle) from this sample represents the best estimate of the vehicle's position.
 
-The simulator uses the the best particle to plot the estimated position and heading of the vehicle designated by a blue circle and arrow. 
+```cpp
+// from main.cpp (Udacity's code)
+
+//...etc...
+
+vector<Particle> particles = pf.particles;
+int num_particles = particles.size();
+double highest_weight = -1.0;
+Particle best_particle;
+double weight_sum = 0.0;
+for (int i = 0; i < num_particles; ++i) {
+  if (particles[i].weight > highest_weight) {
+    highest_weight = particles[i].weight;
+    best_particle = particles[i];
+  }
+
+  weight_sum += particles[i].weight;
+}
+
+//...etc...
+
+```
+
+The simulator uses the the best particle to plot the estimated position and heading of the vehicle. The position and heading of the best particle is designated by a blue circle and arrow on the simulator window.
+
+The best particle's associated landmarks (set in `ParticleFilter::updateWeights()`) are also sent to the simulator. The simulator uses these associations to draw blue lines from the best particle position to the associated landmarks.
+
+```cpp
+// from main.cpp (Udacity's code)
+
+//...etc...
+
+json msgJson;
+msgJson["best_particle_x"] = best_particle.x;
+msgJson["best_particle_y"] = best_particle.y;
+msgJson["best_particle_theta"] = best_particle.theta;
+
+// Optional message data used for debugging particle's sensing 
+//   and associations
+msgJson["best_particle_associations"] = pf.getAssociations(best_particle);
+msgJson["best_particle_sense_x"] = pf.getSenseCoord(best_particle, "X");
+msgJson["best_particle_sense_y"] = pf.getSenseCoord(best_particle, "Y");
+
+auto msg = "42[\"best_particle\"," + msgJson.dump() + "]";
+// std::cout << msg << std::endl;
+ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+
+//...etc...
+
+```
 
 The accuracy of the particle filter can be observed with how close the blue circle is centered about the vehicle symbol. Additionally, the error in meters and radians is also displayed.
 
