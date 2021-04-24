@@ -4,6 +4,18 @@ This is a Udacity Self-Driving Car NanoDegree project submission that uses a par
 ![](./Screenshot.png)
 > *Particle filter error at the last time step was 0.107 and 0.098 meters along the x and y axis respectively, and the heading error was 0.004 radians. The particle filter was able to complete the simulation in 49 seconds.*
 
+## Table of Contents
+- [**Installation**](#installation)
+- [**Usage**](#usage)
+- [**Main Project Files**](#main-project-files)
+- [**The Particle Filter**](#the-particle-filter)
+  - [Inputs to the Particle Filter](#inputs-to-the-particle-filter)
+  - [Initialization](#initialization)
+  - [Prediction](#prediction)
+  - [Particle Weights](#particle-weights)
+  - [Particle Resampling ](#particle-resampling)
+  - [Selecting and Plotting the "Best Particle" to Estimate Position of Kidnapped Vehicle](#selecting-and-plotting-the-best-particle-to-estimate-position-of-kidnapped-vehicle)
+
 ## Installation
 * Clone or fork this repository. 
 * Install [Udacity's Term 2 Simulator](https://github.com/udacity/self-driving-car-sim/releases) which allows the user to visualize the moving object, lidar and radar sensor data, and the kalman filter estimated positions.
@@ -37,25 +49,25 @@ To compile the source code, run the following from the main project directory:
 * `cmake ..`
 * `make`
 
-### The Particle Filter
+## The Particle Filter
 
 The screenshot above indicates the 
 
 The following sections describe the behavior of the particle filter.
 
-#### Inputs to the Particle Filter
+### Inputs to the Particle Filter
 
 Inputs to the particle filter include a map of landmarks: 
 
-`map_data.txt` contains position of landmarks (in meters) is Cartesian coordinates. Each row has three columns
+`map_data.txt` contains position of landmarks (in meters) in Cartesian coordinates. Each row has three columns
 1. x position
 2. y position
 3. landmark id
-> Map data provided by 3D Mapping Solutions GmbH.
+> *Map data provided by 3D Mapping Solutions GmbH.*
 
-Sensor observations of landmarks (from vehicle's frame), velocity, and yaw are provided by the simulator.
+Sensor observations of landmarks (from vehicle's frame of reference), velocity, and yaw are provided by the simulator.
 
-#### Initialization
+### Initialization
 
 The particle filter initializes 1000 particles with a Gaussian distribution around the first position and sets all the weights to 1.
 
@@ -84,7 +96,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 }
 ```
 
-#### Prediction
+### Prediction
 
 The state of each particle is then predicted with the vehicle's (noiseless) velocity and yaw rate using basic geometry.
 
@@ -144,7 +156,7 @@ void setState (double pred_x, double pred_y, double pred_theta,
 }
 ```
 
-#### Calculate Particle Weights
+### Particle Weights
 
 The weights of each particle are calculated based on the sensor measurements of surrounding landmarks. The probability of a sensor meausurement to a landmark is calculated using a multivariate Gaussian distribution. The weight of the particle is then the poduct of the probabilities of these sensor measurements.
 
@@ -300,7 +312,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 }
 ```
 
-#### Resample Particles
+### Particle Resampling 
 
 With the weights of each particle calculated, the particle filter selects samples from based on each particles weight. 
 
@@ -340,7 +352,7 @@ void ParticleFilter::resample() {
 }
 ```
 
-#### Selecting and Plotting the "Best Particle" to Estimate Position of Kidnapped Vehicle
+### Selecting and Plotting the "Best Particle" to Estimate Position of Kidnapped Vehicle
 
 With the lower weight particles filtered out of the sample set, the particle with the highest weight (best particle) from this sample represents the best estimate of the vehicle's position.
 
@@ -400,4 +412,3 @@ The accuracy of the particle filter can be observed with how close the blue circ
 The subsequent time steps continue with prediction (given velocity and yaw inputs from the simulator) through resampling. 
 
 Over time, the lower probability particles are filtered out, while the more accurate particles are selected into the sample, thus providing a highly accurate position of the kidnapped vehicle.
-
