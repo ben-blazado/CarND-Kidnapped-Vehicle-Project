@@ -51,8 +51,6 @@ To compile the source code, run the following from the main project directory:
 
 ## The Particle Filter
 
-The screenshot above indicates the 
-
 The following sections describe the behavior of the particle filter.
 
 ### Inputs to the Particle Filter
