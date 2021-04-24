@@ -340,13 +340,13 @@ void ParticleFilter::resample() {
 
 #### Selecting the "Best Particle" to Estimate Position of Kidnapped Vehicle
 
-With the lower weight paricles filtered out of the sample set, the particle with the highest weight (best particle) from this sample represents the best estimate of the vehicle's position.
+With the lower weight particles filtered out of the sample set, the particle with the highest weight (best particle) from this sample represents the best estimate of the vehicle's position.
 
 The simulator uses the the best particle to plot the estimated position and heading of the vehicle designated by a blue circle and arrow. 
 
-The accuracy of the particle filter can be observed with how close blue circle overlaps is centered about the vehicle symbol. Additionally, the error in meters and radians is also displayed.
+The accuracy of the particle filter can be observed with how close the blue circle is centered about the vehicle symbol. Additionally, the error in meters and radians is also displayed.
 
-The following time steps continue with prediction (given velocity and yaw inputs from the simulator) through resampling. 
+The subsequent time steps continue with prediction (given velocity and yaw inputs from the simulator) through resampling. 
 
-Over time, the lower probability particles are filtered out, while the more accurate particles are selected into the sample.
+Over time, the lower probability particles are filtered out, while the more accurate particles are selected into the sample, and provide a highly accurate position of the kidnapped vehicle.
 
