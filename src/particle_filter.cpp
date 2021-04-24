@@ -2,7 +2,11 @@
  * particle_filter.cpp
  *
  * Created on: Dec 12, 2016
- * Author: Tiffany Huang
+ * Original Author: Tiffany Huang
+ 
+ * ParticleFilter methods filled in and authored by Ben Blazado as part of the 
+ * Kidnapped Vehicle project in fulfillment of the requirements 
+ * of Udacity's Self-Driving Car Engineer Nanodegree Program.
  */
 
 #include "particle_filter.h"
