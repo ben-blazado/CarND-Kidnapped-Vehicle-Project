@@ -244,6 +244,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
    *   (look at equation 3.33) http://planning.cs.uiuc.edu/node99.html
    */
    
+  // calculate normlizer used for mult-variate gaussian calculations
   double std_x = std_landmark[0];
   double std_y = std_landmark[1];
   double normalizer = 2 * M_PI * std_x * std_y;
