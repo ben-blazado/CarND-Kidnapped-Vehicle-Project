@@ -399,5 +399,5 @@ The accuracy of the particle filter can be observed with how close the blue circ
 
 The subsequent time steps continue with prediction (given velocity and yaw inputs from the simulator) through resampling. 
 
-Over time, the lower probability particles are filtered out, while the more accurate particles are selected into the sample, and provide a highly accurate position of the kidnapped vehicle.
+Over time, the lower probability particles are filtered out, while the more accurate particles are selected into the sample, thus providing a highly accurate position of the kidnapped vehicle.
 
