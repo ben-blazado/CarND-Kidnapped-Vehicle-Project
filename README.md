@@ -1,7 +1,7 @@
 # Kidnapped Vehicle
 This is a Udacity Self-Driving Car NanoDegree project submission that uses a particle filter to estimate the position and heading of a simulated moving vehicle with noisy sensor measurements of simulated landmarks. 
 
-![](./screenshot.png)
+![](./Screenshot.png)
 
 ## Installation
 * Clone or fork this repository. 
@@ -26,14 +26,33 @@ Intended user is the Udacity evaluator for this project.
      * Green lines extending from vehicle are ground truth measurements to landmarks around vehicle.
      * Blue lines extending from vehicle are estimated measurements to landmarks around vehicle.
      * Error values for vehicle's position and heading components are also displayed.
-
+     
 ## Main Project Files
 The C++ code and headers can be found in the `src` folder.
 * `particle_filter.cpp`: manages the particle_filter class for calculating the estimated vehicle position and heading.
 
+To compile the source code, run the following from the main project directory:
+* `cd build`
+* `cmake ..`
+* `make`
+
 ### The Particle Filter
 
 The screenshot above indicates the particle filter error at the last time step was 0.107 and 0.098 meters along the x and y axis respectively, and the heading error was 0.004 radians. The particle filter was able to complete the simulation in 49 seconds.
+
+The following sections describe the behavior of the particle filter.
+
+#### Inputs to the Particle Filter
+
+Inputs to the particle filter include a map of landmarks: 
+
+`map_data.txt` contains position of landmarks (in meters) is Cartesian coordinates. Each row has three columns
+1. x position
+2. y position
+3. landmark id
+> * Map data provided by 3D Mapping Solutions GmbH.
+
+Sensor observations of landmarks (from vehicle's frame), velocity, and yaw are provided by the simulator.
 
 #### Initialization
 
@@ -124,154 +143,198 @@ void setState (double pred_x, double pred_y, double pred_theta,
 }
 ```
 
+#### Calculate Particle Weights
 
-To compile the source code, run the following from the main project directory:
-* `cd build`
-* `cmake ..`
-* `make`
+The weights of each particle are calculated based on the sensor measurements of surrounding landmarks. The probability of a sensor meausurement to a landmark is calculated using a multivariate Gaussian distribution. The weight of the particle is then the poduct of the probabilities of these sensor measurements.
 
+Landmarks within the sensor range of the particle are selected from the map.
 
----------------------------------
-# Overview
-This repository contains all the code needed to complete the final project for the Localization course in Udacity's Self-Driving Car Nanodegree.
-
-#### Submission
-All you will need to submit is your `src` directory. You should probably do a `git pull` before submitting to verify that your project passes the most up-to-date version of the grading code (there are some parameters in `src/main.cpp` which govern the requirements on accuracy and run time).
-
-## Project Introduction
-Your robot has been kidnapped and transported to a new location! Luckily it has a map of this location, a (noisy) GPS estimate of its initial location, and lots of (noisy) sensor and control data.
-
-In this project you will implement a 2 dimensional particle filter in C++. Your particle filter will be given a map and some initial localization information (analogous to what a GPS would provide). At each time step your filter will also get observation and control data.
-
-## Running the Code
-This project involves the Term 2 Simulator which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases)
-
-This repository includes two files that can be used to set up and install uWebSocketIO for either Linux or Mac systems. For windows you can use either Docker, VMware, or even Windows 10 Bash on Ubuntu to install uWebSocketIO.
-
-Once the install for uWebSocketIO is complete, the main program can be built and ran by doing the following from the project top directory.
-
-1. mkdir build
-2. cd build
-3. cmake ..
-4. make
-5. ./particle_filter
-
-Alternatively some scripts have been included to streamline this process, these can be leveraged by executing the following in the top directory of the project:
-
-1. ./clean.sh
-2. ./build.sh
-3. ./run.sh
-
-Tips for setting up your environment can be found [here](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/23d376c7-0195-4276-bdf0-e02f1f3c665d)
-
-Note that the programs that need to be written to accomplish the project are src/particle_filter.cpp, and particle_filter.h
-
-The program main.cpp has already been filled out, but feel free to modify it.
-
-Here is the main protocol that main.cpp uses for uWebSocketIO in communicating with the simulator.
-
-INPUT: values provided by the simulator to the c++ program
-
-// sense noisy position data from the simulator
-
-["sense_x"]
-
-["sense_y"]
-
-["sense_theta"]
-
-// get the previous velocity and yaw rate to predict the particle's transitioned state
-
-["previous_velocity"]
-
-["previous_yawrate"]
-
-// receive noisy observation data from the simulator, in a respective list of x/y values
-
-["sense_observations_x"]
-
-["sense_observations_y"]
-
-
-OUTPUT: values provided by the c++ program to the simulator
-
-// best particle values used for calculating the error evaluation
-
-["best_particle_x"]
-
-["best_particle_y"]
-
-["best_particle_theta"]
-
-//Optional message data used for debugging particle's sensing and associations
-
-// for respective (x,y) sensed positions ID label
-
-["best_particle_associations"]
-
-// for respective (x,y) sensed positions
-
-["best_particle_sense_x"] <= list of sensed x positions
-
-["best_particle_sense_y"] <= list of sensed y positions
-
-
-Your job is to build out the methods in `particle_filter.cpp` until the simulator output says:
-
-```
-Success! Your particle filter passed!
+```python
+void selectInRange(const Particle& p, double sensor_range, 
+                   const Map &map_landmarks, 
+                   vector<LandmarkObs> &predicted_landmarks) {
+  
+  for (int i = 0; i < map_landmarks.landmark_list.size(); i ++) {
+    
+    Map::single_landmark_s l = map_landmarks.landmark_list[i];
+    double d = dist(p.x, p.y, l.x_f, l.y_f);
+    
+    if (d <= sensor_range) {
+      // landmark l is in sensor range of particle p
+      LandmarkObs landmark_inrange;
+      landmark_inrange.id = l.id_i;
+      landmark_inrange.x  = l.x_f;
+      landmark_inrange.y  = l.y_f;
+      predicted_landmarks.push_back(landmark_inrange);
+    }
+  }
+  
+}
 ```
 
-# Implementing the Particle Filter
-The directory structure of this repository is as follows:
+The sensor measurements are in the vehicle's frame of reference (vehicle is origin). To calculate the weights correctly, the sensor measurements must be transformed to the map's frame of reference using translation and rotation about each particle.
 
+```python
+void transformToMap(const Particle &p, 
+                    const vector<LandmarkObs> &observations, 
+                    vector<LandmarkObs> &map_observations) {
+
+  for (int i = 0; i < observations.size(); i ++) {
+    
+    LandmarkObs o = observations[i];
+    
+    double cos_theta = cos(p.theta);
+    double sin_theta = sin(p.theta);
+    double x_map = p.x + o.x*cos_theta - o.y*sin_theta;
+    double y_map = p.y + o.x*sin_theta + o.y*cos_theta;
+    
+    LandmarkObs map_observation;
+    map_observation.x  = x_map;
+    map_observation.y  = y_map;
+    map_observations.push_back(map_observation);
+    
+  }
+}
 ```
-root
-|   build.sh
-|   clean.sh
-|   CMakeLists.txt
-|   README.md
-|   run.sh
-|
-|___data
-|   |   
-|   |   map_data.txt
-|   
-|   
-|___src
-    |   helper_functions.h
-    |   main.cpp
-    |   map.h
-    |   particle_filter.cpp
-    |   particle_filter.h
+
+Landmarks in range are matched to the transformed sensor measurements based on shortest distance. 
+
+This matching will be used to calculate the distance between the position of the landmark and position of the observation.
+
+```python
+void ParticleFilter::dataAssociation(vector<LandmarkObs> predicted, 
+                                     vector<LandmarkObs>& observations) {
+    
+    LandmarkObs& o = observations[i];
+    double lowest = INFINITY;
+    int id_closest;
+    
+    for (int j = 0; j < predicted.size(); j ++) {
+      
+      LandmarkObs& p = predicted[j];
+      double d = dist(o.x, o.y, p.x, p.y);
+      if (d < lowest) {
+        id_closest = j;
+        lowest = d;
+      }
+    }
+    
+    // save index of closest landmark to id field of observation
+    // the closest landmark to an obsevation o is now found by:
+    // closest_landmark = landmark[o.id]
+    o.id = id_closest;
+  }
+}
 ```
 
-The only file you should modify is `particle_filter.cpp` in the `src` directory. The file contains the scaffolding of a `ParticleFilter` class and some associated methods. Read through the code, the comments, and the header file `particle_filter.h` to get a sense for what this code is expected to do.
+The probability of each observation from a particle can then be calculated using the distance between the observation and it's associated landmark using the probability density function of a multivariate gaussian distribution. 
 
-If you are interested, take a look at `src/main.cpp` as well. This file contains the code that will actually be running your particle filter and calling the associated methods.
+The closer the position of the observation is to its matched landmark, the higher the probability (up to 1.0).
 
-## Inputs to the Particle Filter
-You can find the inputs to the particle filter in the `data` directory.
+The farther the position of observation is to its matched landmark, the lower the probability.
 
-#### The Map*
-`map_data.txt` includes the position of landmarks (in meters) on an arbitrary Cartesian coordinate system. Each row has three columns
-1. x position
-2. y position
-3. landmark id
+The weight of the particle is the product of the probabilities of the observations.
 
-### All other data the simulator provides, such as observations and controls.
+```python
+void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
+                                   const vector<LandmarkObs> &observations, 
+                                   const Map &map_landmarks) {
+   
+  // calculate normlizer used for mult-variate gaussian calculations
+  double std_x = std_landmark[0];
+  double std_y = std_landmark[1];
+  double normalizer = 2 * M_PI * std_x * std_y;
+   
+  for (int i = 0; i < particles.size(); i ++) {
+    
+    Particle& p = particles[i];
+    
+    // select landmarks in sensor range of particle p
+    vector<LandmarkObs> map_predicted_landmarks;
+    selectInRange(p, sensor_range, map_landmarks, map_predicted_landmarks);
+  
+    // transform observed landmarks from vehicle to map coordinates
+    vector<LandmarkObs> map_observations;
+    transformToMap(p, observations, map_observations);
+    
+    // associate nearest predicted landmark to observed landmark
+    dataAssociation(map_predicted_landmarks, map_observations);
+    
+    // set up variables to record landmarks associated with particle p
+    vector<int> associations;   // landmark id associated with particle p
+    vector<double> sense_x;     // observed x coordinate of landmark
+    vector<double> sense_y;     // observed y coordinate of landmark
 
-> * Map data provided by 3D Mapping Solutions GmbH.
+    // calculate particle weight
+    p.weight = 1.0;
+    
+    for (int j = 0; j < map_observations.size(); j ++) {
+      
+      LandmarkObs map_o = map_observations[j];
+      // map_o.id is the id of the closest predicted_landmark
+      LandmarkObs map_closest = map_predicted_landmarks[map_o.id];
+      
+      // calculate weight of particle using mult-variate gaussian
+      double dx = (map_o.x - map_closest.x);
+      double dy = (map_o.y - map_closest.y);
+      double e = exp(-((dx*dx)/(2*std_x*std_x) + (dy*dy)/(2*std_y*std_y)));
+      
+      p.weight *= (e / normalizer);
+      
+      // record closest landmark as associated with particle p
+      associations.push_back(map_closest.id);  // save id of landmark
+      sense_x.push_back(map_o.x);              // save observed x coordinate
+      sense_y.push_back(map_o.y);              // save observed y coordinate
+    }
+    
+    SetAssociations(p, associations, sense_x, sense_y);
+    
+    // vector of weights will be used in 
+    // discrete_distribution in ParticleFilter::resample
+    weights[i] = p.weight;
+    
+  }
+}
+```
 
-## Success Criteria
-If your particle filter passes the current grading code in the simulator (you can make sure you have the current version at any time by doing a `git pull`), then you should pass!
+#### Resample Particles
 
-The things the grading code is looking for are:
+With the weights of each particle calculated, the particle filter selects samples from based on each particles weight. 
+
+Selection of each particle uses a `discrete_distribution` initialized by the particle filter's `weights` vector.
+
+The larger the weight of the particle, the more likely it is to be selected by the filter. Lower weight particles are "filtered" out over each time step.
+
+```python
+void ParticleFilter::resample() {
+  /**
+   * TODO: Resample particles with replacement with probability proportional 
+   *   to their weight. 
+   * NOTE: You may find std::discrete_distribution helpful here.
+   *   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+   */
+
+  // setup discrete distribution using the calculated weights
+  std::discrete_distribution<int> dist(weights.begin(), weights.end());
+  
+  // vector of particles selected from sample
+  std::vector<Particle> selected;
+  
+  // select particles from sample according to discrete_distribution dist
+  // this is the part the filters out particles
+  for (int n = 0; n < particles.size(); n ++) {
+    
+    int i = dist(Gen);
+    selected.push_back(particles[i]);
+  }
+  
+  // clear out existing set of particles
+  particles.clear();
+  
+  // save selected to particles for use in next iteration
+  particles.assign(selected.begin(), selected.end());
+  
+}
+```
 
 
-1. **Accuracy**: your particle filter should localize vehicle position and yaw to within the values specified in the parameters `max_translation_error` and `max_yaw_error` in `src/main.cpp`.
-
-2. **Performance**: your particle filter should complete execution within the time of 100 seconds.
-
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
